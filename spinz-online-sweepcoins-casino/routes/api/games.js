@@ -4,6 +4,9 @@ const { check, validationResult } = require('express-validator');
 const { auth } = require('../../middleware/auth');
 
 const Game = require('../../models/Game');
+const User = require('../../models/User');
+const GameResult = require('../../models/GameResult');
+const SlotMachine = require('../../gameLogic/slotMachine');
 
 // @route   GET api/games
 // @desc    Get all games
@@ -74,6 +77,78 @@ router.get('/:id/achievements', auth, async (req, res) => {
     if (err.kind === 'ObjectId') {
       return res.status(404).json({ msg: 'Game not found' });
     }
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST api/games/:id/play
+// @desc    Play a game
+// @access  Private
+router.post('/:id/play', [
+  auth,
+  [
+    check('bet', 'Bet amount is required').not().isEmpty(),
+    check('bet', 'Bet amount must be a number').isNumeric(),
+  ]
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const game = await Game.findById(req.params.id);
+    if (!game) {
+      return res.status(404).json({ msg: 'Game not found' });
+    }
+
+    const user = await User.findById(req.user.id);
+    const bet = parseFloat(req.body.bet);
+
+    if (bet < game.minBet || bet > game.maxBet) {
+      return res.status(400).json({ msg: 'Invalid bet amount' });
+    }
+
+    if (user.sweepcoinsBalance < bet) {
+      return res.status(400).json({ msg: 'Insufficient balance' });
+    }
+
+    let result, payout;
+
+    switch (game.type) {
+      case 'Slots':
+        const slotMachine = new SlotMachine(3, game.gameSettings.symbols || undefined);
+        result = slotMachine.spin();
+        payout = slotMachine.calculatePayout(bet, result);
+        break;
+      // Add cases for other game types here
+      default:
+        return res.status(400).json({ msg: 'Unsupported game type' });
+    }
+
+    // Update user balance
+    user.sweepcoinsBalance -= bet;
+    user.sweepcoinsBalance += payout;
+    user.totalWinnings += payout > bet ? payout - bet : 0;
+    await user.save();
+
+    // Create game result
+    const gameResult = new GameResult({
+      player: user._id,
+      game: game._id,
+      bet,
+      outcome: JSON.stringify(result),
+      winnings: payout
+    });
+    await gameResult.save();
+
+    res.json({
+      result,
+      payout,
+      newBalance: user.sweepcoinsBalance
+    });
+  } catch (err) {
+    console.error(err.message);
     res.status(500).send('Server Error');
   }
 });

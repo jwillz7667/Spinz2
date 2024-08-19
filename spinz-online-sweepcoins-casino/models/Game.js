@@ -40,6 +40,10 @@ const GameSchema = new mongoose.Schema({
     description: String,
     criteria: mongoose.Schema.Types.Mixed
   }],
+  gameSettings: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  },
   createdAt: {
     type: Date,
     default: Date.now
