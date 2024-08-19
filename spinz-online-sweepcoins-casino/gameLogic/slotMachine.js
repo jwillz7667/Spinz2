@@ -1,4 +1,4 @@
-const crypto = require('crypto');
+const CryptoJS = require('crypto-js');
 
 class SlotMachine {
   constructor(reels = 3, symbols = ['🍒', '🍋', '🍊', '🍇', '🔔', '💎']) {
@@ -17,9 +17,14 @@ class SlotMachine {
 
   getRandomInt(min, max) {
     const range = max - min + 1;
-    const bytes = crypto.randomBytes(4);
-    const randomInt = bytes.readUInt32BE(0);
+    const randomBytes = CryptoJS.lib.WordArray.random(4);
+    const randomInt = randomBytes.words[0] >>> 0; // Convert to unsigned 32-bit integer
     return min + (randomInt % range);
+  }
+
+  // Method for seeding the RNG (for testing purposes only)
+  seedRNG(seed) {
+    CryptoJS.lib.WordArray.random = () => CryptoJS.lib.WordArray.create([seed]);
   }
 
   calculatePayout(bet, result) {
