@@ -1,7 +1,7 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
-const { auth, isAdmin } = require('./middleware/auth');
+const { auth, hasRole, hasAnyRole } = require('./middleware/auth');
 
 // Load environment variables
 dotenv.config();
@@ -22,11 +22,12 @@ app.get('/', (req, res) => {
 // User routes
 app.use('/api/users', require('./routes/api/users'));
 
-// Game routes (protected)
-app.use('/api/games', auth, require('./routes/api/games'));
+// Game routes (protected, accessible by players and admins)
+app.use('/api/games', [auth, hasAnyRole(['player', 'admin'])], require('./routes/api/games'));
 
 // Admin routes (protected and admin-only)
-app.use('/api/admin', [auth, isAdmin], require('./routes/api/admin'));
+app.use('/api/admin', [auth, hasRole('admin')], require('./routes/api/admin'));
+app.use('/api/admin/users', [auth, hasRole('admin')], require('./routes/api/admin/users'));
 
 // Start server
 const PORT = process.env.PORT || 5000;

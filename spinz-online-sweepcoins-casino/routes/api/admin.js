@@ -1,12 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const { check, validationResult } = require('express-validator');
+const { hasRole } = require('../../middleware/auth');
 
 const Game = require('../../models/Game');
 
 // @route   POST api/admin/games
 // @desc    Create a new game
 // @access  Private (Admin only)
+router.use(hasRole('admin'));
 router.post(
   '/games',
   [

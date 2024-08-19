@@ -23,12 +23,24 @@ const auth = (req, res, next) => {
   }
 };
 
-// Middleware to check if the user is an admin
-const isAdmin = (req, res, next) => {
-  if (!req.user || req.user.role !== 'admin') {
-    return res.status(403).json({ msg: 'Access denied' });
-  }
-  next();
+// Middleware to check if the user has a specific role
+const hasRole = (role) => {
+  return (req, res, next) => {
+    if (!req.user || !req.user.roles.includes(role)) {
+      return res.status(403).json({ msg: 'Access denied' });
+    }
+    next();
+  };
 };
 
-module.exports = { auth, isAdmin };
+// Middleware to check if the user has any of the specified roles
+const hasAnyRole = (roles) => {
+  return (req, res, next) => {
+    if (!req.user || !req.user.roles.some(role => roles.includes(role))) {
+      return res.status(403).json({ msg: 'Access denied' });
+    }
+    next();
+  };
+};
+
+module.exports = { auth, hasRole, hasAnyRole };
