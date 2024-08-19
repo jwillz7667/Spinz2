@@ -3,5 +3,11 @@
   "jwtSecret": "your_jwt_secret",
   "awsRegion": "your_aws_region",
   "awsAccessKeyId": "your_aws_access_key_id",
-  "awsSecretAccessKey": "your_aws_secret_access_key"
+  "awsSecretAccessKey": "your_aws_secret_access_key",
+  "emailHost": "your_email_host",
+  "emailPort": 587,
+  "emailUser": "your_email_user",
+  "emailPassword": "your_email_password",
+  "emailFrom": "noreply@spinz-online.com",
+  "clientURL": "http://localhost:3000"
 }
