@@ -1,0 +1,7 @@
+{
+  "mongoURI": "your_mongodb_connection_string",
+  "jwtSecret": "your_jwt_secret",
+  "awsRegion": "your_aws_region",
+  "awsAccessKeyId": "your_aws_access_key_id",
+  "awsSecretAccessKey": "your_aws_secret_access_key"
+}
