@@ -30,5 +30,9 @@ app.use('/api/admin', [auth, hasRole('admin')], require('./routes/api/admin'));
 app.use('/api/admin/users', [auth, hasRole('admin')], require('./routes/api/admin/users'));
 
 // Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+if (process.env.NODE_ENV !== 'test') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+}
+
+module.exports = app;
