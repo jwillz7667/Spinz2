@@ -25,6 +25,25 @@ const UserSchema = new mongoose.Schema({
   verificationToken: String,
   resetPasswordToken: String,
   resetPasswordExpires: Date,
+  sweepcoinsBalance: {
+    type: Number,
+    default: 0
+  },
+  totalWinnings: {
+    type: Number,
+    default: 0
+  },
+  achievementsUnlocked: [{
+    game: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Game'
+    },
+    achievement: String,
+    unlockedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   date: {
     type: Date,
     default: Date.now

@@ -23,9 +23,22 @@ const GameSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  minBet: {
+    type: Number,
+    required: true
+  },
+  maxBet: {
+    type: Number,
+    required: true
+  },
+  maxPlayers: {
+    type: Number,
+    default: 1
+  },
   achievements: [{
     name: String,
-    description: String
+    description: String,
+    criteria: mongoose.Schema.Types.Mixed
   }],
   createdAt: {
     type: Date,
