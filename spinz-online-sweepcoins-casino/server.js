@@ -1,7 +1,10 @@
 const express = require('express');
+const http = require('http');
+const socketIo = require('socket.io');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const { auth, hasRole, hasAnyRole } = require('./middleware/auth');
+const setupWebSocket = require('./websocket/setup');
 
 // Load environment variables
 dotenv.config();
@@ -10,6 +13,16 @@ dotenv.config();
 connectDB();
 
 const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    methods: ["GET", "POST"]
+  }
+});
+
+// Set up WebSocket
+setupWebSocket(io);
 
 // Middleware
 app.use(express.json());
@@ -32,7 +45,7 @@ app.use('/api/admin/users', [auth, hasRole('admin')], require('./routes/api/admi
 // Start server
 if (process.env.NODE_ENV !== 'test') {
   const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }
 
-module.exports = app;
+module.exports = { app, server, io };
