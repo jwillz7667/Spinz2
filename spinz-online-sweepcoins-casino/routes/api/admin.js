@@ -1,18 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const { check, validationResult } = require('express-validator');
-const { hasRole } = require('../../middleware/auth');
+const { auth, hasRole } = require('../../middleware/auth');
 
 const Game = require('../../models/Game');
+
+// Apply admin role check to all routes
+router.use(auth, hasRole('admin'));
 
 // @route   POST api/admin/games
 // @desc    Create a new game
 // @access  Private (Admin only)
-router.use(hasRole('admin'));
 router.post(
   '/games',
   [
     check('name', 'Name is required').not().isEmpty(),
+    check('type', 'Type is required').isIn(['Slots', 'Poker', 'Blackjack']),
     check('description', 'Description is required').not().isEmpty(),
     check('rules', 'Rules are required').not().isEmpty(),
     check('payouts', 'Payouts are required').not().isEmpty()
@@ -23,14 +26,16 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, description, rules, payouts } = req.body;
+    const { name, type, description, rules, payouts, achievements } = req.body;
 
     try {
       let game = new Game({
         name,
+        type,
         description,
         rules,
-        payouts
+        payouts,
+        achievements
       });
 
       await game.save();
@@ -47,13 +52,15 @@ router.post(
 // @desc    Update a game
 // @access  Private (Admin only)
 router.put('/games/:id', async (req, res) => {
-  const { name, description, rules, payouts } = req.body;
+  const { name, type, description, rules, payouts, achievements } = req.body;
 
   const gameFields = {};
   if (name) gameFields.name = name;
+  if (type) gameFields.type = type;
   if (description) gameFields.description = description;
   if (rules) gameFields.rules = rules;
   if (payouts) gameFields.payouts = payouts;
+  if (achievements) gameFields.achievements = achievements;
 
   try {
     let game = await Game.findById(req.params.id);
