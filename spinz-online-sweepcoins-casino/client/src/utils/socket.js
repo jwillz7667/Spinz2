@@ -67,6 +67,18 @@ export const onGameUpdate = (callback) => {
   }
 };
 
+export const onJackpotChange = (callback) => {
+  if (socket) {
+    socket.on('jackpotChange', callback);
+  }
+};
+
+export const onPromotionChange = (callback) => {
+  if (socket) {
+    socket.on('promotionChange', callback);
+  }
+};
+
 export const onNewMessage = (callback) => {
   if (socket) {
     socket.on('newMessage', callback);

@@ -17,6 +17,47 @@ const setupWebSocket = (io) => {
       socket.user = user;
       next();
     } catch (err) {
+      next(new Error('Invalid token'));
+    }
+  });
+
+  io.on('connection', (socket) => {
+    console.log('New WebSocket connection');
+
+    // Join a game room
+    socket.on('joinGame', (gameId) => {
+      socket.join(`game:${gameId}`);
+    });
+
+    // Leave a game room
+    socket.on('leaveGame', (gameId) => {
+      socket.leave(`game:${gameId}`);
+    });
+
+    // Handle game events
+    socket.on('gameEvent', (data) => {
+      io.to(`game:${data.gameId}`).emit('gameUpdate', data);
+    });
+
+    // Handle jackpot updates
+    socket.on('jackpotUpdate', (data) => {
+      io.emit('jackpotChange', data);
+    });
+
+    // Handle promotional banner updates
+    socket.on('promotionUpdate', (data) => {
+      io.emit('promotionChange', data);
+    });
+
+    socket.on('disconnect', () => {
+      console.log('WebSocket disconnected');
+    });
+  });
+        return next(new Error('User not found'));
+      }
+      socket.user = user;
+      next();
+    } catch (err) {
       return next(new Error('Authentication error'));
     }
   });
