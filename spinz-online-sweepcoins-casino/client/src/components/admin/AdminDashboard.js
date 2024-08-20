@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import axios from 'axios';
 import { Line, Bar, Pie } from 'react-chartjs-2';
+import io from 'socket.io-client';
 
 const AdminDashboard = ({ auth: { user } }) => {
   const [users, setUsers] = useState([]);
@@ -52,17 +53,40 @@ const AdminDashboard = ({ auth: { user } }) => {
 
     fetchData();
 
-    // Set up interval to fetch real-time reports every minute
-    const interval = setInterval(async () => {
-      try {
-        const realTimeReportsRes = await axios.get('/api/admin/real-time-reports');
-        setRealTimeReports(realTimeReportsRes.data);
-      } catch (err) {
-        console.error('Error fetching real-time reports:', err);
-      }
-    }, 60000);
+    // Set up WebSocket connection for real-time updates
+    const socket = io('/admin');
 
-    return () => clearInterval(interval);
+    socket.on('gameDataUpdate', (data) => {
+      setRealTimeReports(prevReports => ({
+        ...prevReports,
+        gamePerformance: prevReports.gamePerformance.map(game => 
+          game.gameName === data.game ? { ...game, ...data.stats } : game
+        )
+      }));
+    });
+
+    socket.on('playerDataUpdate', (data) => {
+      setRealTimeReports(prevReports => ({
+        ...prevReports,
+        userActivity: {
+          ...prevReports.userActivity,
+          activeUsers: new Set([...prevReports.userActivity.activeUsers, data.player]).size
+        }
+      }));
+    });
+
+    socket.on('financialDataUpdate', (data) => {
+      setRealTimeReports(prevReports => ({
+        ...prevReports,
+        financialTransactions: prevReports.financialTransactions.map(transaction => 
+          transaction._id === data.type ? { ...transaction, ...data.stats } : transaction
+        )
+      }));
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   const handleRoleChange = async (userId, newRole) => {

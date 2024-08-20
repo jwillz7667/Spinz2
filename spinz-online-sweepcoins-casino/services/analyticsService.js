@@ -3,9 +3,17 @@ const User = require('../models/User');
 const Game = require('../models/Game');
 const Transaction = require('../models/Transaction');
 const DataProcessingService = require('./dataProcessingService');
+const RealTimeDataService = require('./realTimeDataService');
 
 class AnalyticsService {
   async getRealTimeGamePerformance(timeFrame) {
+    const realtimeStats = await RealTimeDataService.getRealtimeStats();
+    const dbStats = await this.getDbGamePerformance(timeFrame);
+    
+    return this.mergeGameStats(realtimeStats.gameStats, dbStats);
+  }
+
+  async getDbGamePerformance(timeFrame) {
     const startTime = new Date(Date.now() - timeFrame);
     const results = await GameResult.aggregate([
       { $match: { createdAt: { $gte: startTime } } },
@@ -30,7 +38,36 @@ class AnalyticsService {
     }));
   }
 
+  mergeGameStats(realtimeStats, dbStats) {
+    const mergedStats = [...dbStats];
+    realtimeStats.forEach(realtimeStat => {
+      const existingStatIndex = mergedStats.findIndex(stat => stat.gameName === realtimeStat.game);
+      if (existingStatIndex !== -1) {
+        mergedStats[existingStatIndex].totalBets += realtimeStat.totalBets;
+        mergedStats[existingStatIndex].totalWins += realtimeStat.totalWinnings;
+        mergedStats[existingStatIndex].totalSpins += realtimeStat.spins;
+        mergedStats[existingStatIndex].rtp = (mergedStats[existingStatIndex].totalWins / mergedStats[existingStatIndex].totalBets) * 100;
+      } else {
+        mergedStats.push({
+          gameName: realtimeStat.game,
+          totalBets: realtimeStat.totalBets,
+          totalWins: realtimeStat.totalWinnings,
+          totalSpins: realtimeStat.spins,
+          rtp: (realtimeStat.totalWinnings / realtimeStat.totalBets) * 100
+        });
+      }
+    });
+    return mergedStats;
+  }
+
   async getRealTimeUserActivity(timeFrame) {
+    const realtimeStats = await RealTimeDataService.getRealtimeStats();
+    const dbStats = await this.getDbUserActivity(timeFrame);
+    
+    return this.mergeUserStats(realtimeStats.playerStats, dbStats);
+  }
+
+  async getDbUserActivity(timeFrame) {
     const startTime = new Date(Date.now() - timeFrame);
     return await User.aggregate([
       { $match: { lastActivity: { $gte: startTime } } },
@@ -44,7 +81,25 @@ class AnalyticsService {
     ]);
   }
 
+  mergeUserStats(realtimeStats, dbStats) {
+    const activeUsers = new Set(dbStats[0].activeUsers);
+    realtimeStats.forEach(stat => activeUsers.add(stat.player));
+    
+    return [{
+      _id: null,
+      activeUsers: activeUsers.size,
+      newRegistrations: dbStats[0].newRegistrations
+    }];
+  }
+
   async getRealTimeFinancialTransactions(timeFrame) {
+    const realtimeStats = await RealTimeDataService.getRealtimeStats();
+    const dbStats = await this.getDbFinancialTransactions(timeFrame);
+    
+    return this.mergeFinancialStats(realtimeStats.financialStats, dbStats);
+  }
+
+  async getDbFinancialTransactions(timeFrame) {
     const startTime = new Date(Date.now() - timeFrame);
     return await Transaction.aggregate([
       { $match: { createdAt: { $gte: startTime } } },
@@ -54,6 +109,24 @@ class AnalyticsService {
         count: { $sum: 1 }
       }}
     ]);
+  }
+
+  mergeFinancialStats(realtimeStats, dbStats) {
+    const mergedStats = [...dbStats];
+    realtimeStats.forEach(realtimeStat => {
+      const existingStatIndex = mergedStats.findIndex(stat => stat._id === realtimeStat.type);
+      if (existingStatIndex !== -1) {
+        mergedStats[existingStatIndex].totalAmount += realtimeStat.totalAmount;
+        mergedStats[existingStatIndex].count += realtimeStat.count;
+      } else {
+        mergedStats.push({
+          _id: realtimeStat.type,
+          totalAmount: realtimeStat.totalAmount,
+          count: realtimeStat.count
+        });
+      }
+    });
+    return mergedStats;
   }
   async getSlotGameMetrics(gameId, startDate, endDate) {
     const results = await GameResult.find({

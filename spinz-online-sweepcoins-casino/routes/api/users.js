@@ -13,6 +13,7 @@ const { verifyCaptcha } = require('../../utils/captcha');
 
 const User = require('../../models/User');
 const Role = require('../../models/Role');
+const ActivityLog = require('../../models/ActivityLog');
 
 // Apply stricter rate limiting to authentication routes
 const authLimiter = rateLimit({
@@ -69,6 +70,13 @@ router.post(
       user.password = await bcrypt.hash(password, salt);
 
       await user.save();
+
+      // Log the registration activity
+      await new ActivityLog({
+        user: user._id,
+        action: 'REGISTER',
+        details: { name: user.name, email: user.email }
+      }).save();
 
       sendVerificationEmail(user.email, user.verificationToken);
 

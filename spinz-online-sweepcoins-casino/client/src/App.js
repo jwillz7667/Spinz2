@@ -12,6 +12,7 @@ import Register from './components/auth/Register';
 import Wallet from './components/wallet/Wallet';
 import AdminDashboard from './components/admin/AdminDashboard';
 import PrivateRoute from './components/routing/PrivateRoute';
+import UserJourney from './components/wireframes/UserJourney';
 import { loadUser } from './actions/auth';
 import setAuthToken from './utils/setAuthToken';
 
@@ -38,6 +39,7 @@ function App() {
               <PrivateRoute path="/profile" component={Profile} />
               <PrivateRoute path="/wallet" component={Wallet} />
               <PrivateRoute path="/admin" component={AdminDashboard} requiredPermission="manageUsers" />
+              <Route path="/user-journey" component={UserJourney} />
             </Switch>
           </main>
           <Footer />

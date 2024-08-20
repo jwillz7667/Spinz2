@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const { check, validationResult } = require('express-validator');
-const { auth } = require('../../middleware/auth');
+const { auth, hasPermission } = require('../../middleware/auth');
 
 const Game = require('../../models/Game');
 const User = require('../../models/User');
 const GameResult = require('../../models/GameResult');
 const SlotMachine = require('../../gameLogic/slotMachine');
 const slotGameIntegration = require('../../services/slotGameIntegration');
+const analyticsService = require('../../services/analyticsService');
 
 // @route   GET api/games
 // @desc    Get all games
@@ -297,5 +298,40 @@ async function evaluateAchievementCriteria(user, game, gameResult, criteria) {
   // This is a placeholder and should be replaced with actual logic
   return Math.random() < 0.1; // 10% chance of unlocking an achievement
 }
+
+// @route   GET api/games/analytics/:id
+// @desc    Get analytics for a specific game
+// @access  Private (Admin only)
+router.get('/analytics/:id', [auth, hasPermission('viewAnalytics')], async (req, res) => {
+  try {
+    const gameId = req.params.id;
+    const { startDate, endDate } = req.query;
+
+    const metrics = await analyticsService.getSlotGameMetrics(gameId, new Date(startDate), new Date(endDate));
+    const retentionRate = await analyticsService.getPlayerRetentionRate(gameId, new Date(startDate), new Date(endDate), 30);
+
+    res.json({
+      ...metrics,
+      retentionRate
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/games/analytics/top-performing
+// @desc    Get top performing games
+// @access  Private (Admin only)
+router.get('/analytics/top-performing', [auth, hasPermission('viewAnalytics')], async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const topGames = await analyticsService.getTopPerformingGames(new Date(startDate), new Date(endDate));
+    res.json(topGames);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
 
 module.exports = router;
