@@ -2,10 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import axios from 'axios';
+import { Line } from 'react-chartjs-2';
 
 const AdminDashboard = ({ auth: { user } }) => {
   const [users, setUsers] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
+  const [gameAnalytics, setGameAnalytics] = useState(null);
+  const [topGames, setTopGames] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -15,6 +18,19 @@ const AdminDashboard = ({ auth: { user } }) => {
 
         const activityRes = await axios.get('/api/admin/activity');
         setActivityLogs(activityRes.data);
+
+        const endDate = new Date();
+        const startDate = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
+
+        const analyticsRes = await axios.get(`/api/games/analytics/${gameId}`, {
+          params: { startDate, endDate }
+        });
+        setGameAnalytics(analyticsRes.data);
+
+        const topGamesRes = await axios.get('/api/games/analytics/top-performing', {
+          params: { startDate, endDate }
+        });
+        setTopGames(topGamesRes.data);
       } catch (err) {
         console.error('Error fetching admin data:', err);
       }
@@ -32,6 +48,27 @@ const AdminDashboard = ({ auth: { user } }) => {
     } catch (err) {
       console.error('Error changing user role:', err);
     }
+  };
+
+  const renderAnalyticsChart = () => {
+    if (!gameAnalytics) return null;
+
+    const data = {
+      labels: ['RTP', 'Bonus Utilization', 'Retention Rate'],
+      datasets: [{
+        label: 'Game Metrics',
+        data: [gameAnalytics.rtp, gameAnalytics.bonusUtilizationRate, gameAnalytics.retentionRate],
+        backgroundColor: 'rgba(75,192,192,0.4)',
+        borderColor: 'rgba(75,192,192,1)',
+      }]
+    };
+
+    return (
+      <div className="analytics-chart">
+        <h3>Game Analytics</h3>
+        <Line data={data} />
+      </div>
+    );
   };
 
   return (
@@ -69,9 +106,26 @@ const AdminDashboard = ({ auth: { user } }) => {
           </tbody>
         </table>
       </div>
+      {renderAnalyticsChart()}
+      <div className="top-games">
+        <h3>Top Performing Games</h3>
+        <ul>
+          {topGames.map((game, index) => (
+            <li key={index}>
+              {game.gameName} - RTP: {game.rtp.toFixed(2)}%, Total Spins: {game.totalSpins}
+            </li>
+          ))}
+        </ul>
+      </div>
       <div className="activity-monitoring">
         <h3>Recent Activity</h3>
-        {/* Implement activity log display here */}
+        <ul>
+          {activityLogs.map((log, index) => (
+            <li key={index}>
+              {log.action} by {log.user} at {new Date(log.timestamp).toLocaleString()}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
