@@ -19,6 +19,7 @@ const setupWebSocket = (io) => {
       next(new Error('Invalid token'));
     }
   });
+}
 
   io.on('connection', (socket) => {
     console.log('New WebSocket connection');
