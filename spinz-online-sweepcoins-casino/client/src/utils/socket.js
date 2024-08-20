@@ -42,3 +42,33 @@ export const sendGameAction = (gameId, action) => {
     socket.emit('gameAction', { gameId, action });
   }
 };
+
+export const sendChatMessage = (gameId, message) => {
+  if (socket) {
+    socket.emit('sendMessage', { gameId, message });
+  }
+};
+
+export const onPlayerJoined = (callback) => {
+  if (socket) {
+    socket.on('playerJoined', callback);
+  }
+};
+
+export const onPlayerLeft = (callback) => {
+  if (socket) {
+    socket.on('playerLeft', callback);
+  }
+};
+
+export const onGameUpdate = (callback) => {
+  if (socket) {
+    socket.on('gameUpdate', callback);
+  }
+};
+
+export const onNewMessage = (callback) => {
+  if (socket) {
+    socket.on('newMessage', callback);
+  }
+};

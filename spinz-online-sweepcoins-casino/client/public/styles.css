@@ -117,3 +117,72 @@ input[type="password"] {
         padding: 1rem;
     }
 }
+
+.game-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.game-content {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.players-list {
+    background-color: var(--secondary-color);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.chat-container {
+    height: 300px;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--secondary-color);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.chat-message {
+    margin-bottom: 0.5rem;
+}
+
+.chat-username {
+    font-weight: bold;
+    color: var(--accent-color);
+}
+
+.chat-input-form {
+    display: flex;
+    padding: 0.5rem;
+}
+
+.chat-input {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid var(--accent-color);
+    border-radius: 3px;
+    background-color: var(--background-color);
+    color: var(--text-color);
+}
+
+.chat-send-button {
+    margin-left: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: var(--accent-color);
+    color: var(--text-color);
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.chat-send-button:hover {
+    background-color: var(--primary-color);
+}

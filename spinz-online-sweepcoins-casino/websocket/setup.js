@@ -27,18 +27,28 @@ const setupWebSocket = (io) => {
     socket.on('joinGame', (gameId) => {
       socket.join(gameId);
       console.log(`User ${socket.user.name} joined game ${gameId}`);
+      io.to(gameId).emit('playerJoined', { userId: socket.user.id, name: socket.user.name });
     });
 
     socket.on('leaveGame', (gameId) => {
       socket.leave(gameId);
       console.log(`User ${socket.user.name} left game ${gameId}`);
+      io.to(gameId).emit('playerLeft', { userId: socket.user.id, name: socket.user.name });
     });
 
     socket.on('gameAction', (data) => {
-      // Handle game actions here
       console.log(`Game action received from ${socket.user.name}:`, data);
-      // Broadcast the action to other players in the game
-      socket.to(data.gameId).emit('gameUpdate', data);
+      io.to(data.gameId).emit('gameUpdate', { ...data, userId: socket.user.id });
+    });
+
+    socket.on('sendMessage', (data) => {
+      console.log(`Chat message received from ${socket.user.name}:`, data);
+      io.to(data.gameId).emit('newMessage', {
+        userId: socket.user.id,
+        name: socket.user.name,
+        message: data.message,
+        timestamp: new Date()
+      });
     });
 
     socket.on('disconnect', () => {
