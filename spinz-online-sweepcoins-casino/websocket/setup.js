@@ -7,18 +7,13 @@ const setupWebSocket = (io) => {
     const token = socket.handshake.auth.token;
     if (!token) {
       return next(new Error('Authentication error'));
+    }
     try {
       const decoded = jwt.verify(token, config.get('jwtSecret'));
       const user = await User.findById(decoded.user.id).select('-password');
       if (!user) {
-        return next(new Error('User not found'));
-      }
-      socket.user = user;
-      next();
-    } catch (err) {
-      next(new Error('Invalid token'));
-    }
   });
+}
 }
 
   io.on('connection', (socket) => {
@@ -96,6 +91,5 @@ const setupWebSocket = (io) => {
       console.log('User disconnected');
     });
   });
-};
 
 module.exports = setupWebSocket;
