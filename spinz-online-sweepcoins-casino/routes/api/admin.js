@@ -1,8 +1,6 @@
 const express = require('express');
-const router = express.Router();
 const { check, validationResult } = require('express-validator');
 const { auth, hasRole } = require('../../middleware/auth');
-
 const Game = require('../../models/Game');
 
 // Apply admin role check to all routes
@@ -124,7 +122,6 @@ router.get('/real-time-reports', [auth, hasPermission('viewAnalytics')], async (
 });
 
 module.exports = router;
-const express = require('express');
 const router = express.Router();
 const { auth, hasPermission } = require('../../middleware/auth');
 const User = require('../../models/User');
