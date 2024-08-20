@@ -7,7 +7,6 @@ const setupWebSocket = (io) => {
     const token = socket.handshake.auth.token;
     if (!token) {
       return next(new Error('Authentication error'));
-    }
     try {
       const decoded = jwt.verify(token, config.get('jwtSecret'));
       const user = await User.findById(decoded.user.id).select('-password');
