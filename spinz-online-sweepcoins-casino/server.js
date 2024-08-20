@@ -59,9 +59,7 @@ app.use('/api/payments', auth, require('./routes/api/payments'));
 app.use('/api/wallets', auth, require('./routes/api/wallets'));
 
 // Admin routes (protected and admin-only)
-app.use('/api/admin', [auth, hasRole('admin')], require('./routes/api/admin'));
-app.use('/api/admin/users', [auth, hasRole('admin')], require('./routes/api/admin/users'));
-app.use('/api/admin/wallets', [auth, hasRole('admin')], require('./routes/api/admin/wallets'));
+app.use('/api/admin', [auth, hasPermission('manageUsers')], require('./routes/api/admin'));
 
 // Start server
 if (process.env.NODE_ENV !== 'test') {

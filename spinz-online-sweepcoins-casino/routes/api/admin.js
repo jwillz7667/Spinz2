@@ -103,3 +103,59 @@ router.delete('/games/:id', async (req, res) => {
 });
 
 module.exports = router;
+const express = require('express');
+const router = express.Router();
+const { auth, hasPermission } = require('../../middleware/auth');
+const User = require('../../models/User');
+const Role = require('../../models/Role');
+
+// @route   GET api/admin/users
+// @desc    Get all users
+// @access  Private (Admin only)
+router.get('/users', [auth, hasPermission('manageUsers')], async (req, res) => {
+  try {
+    const users = await User.find().select('-password').populate('roles');
+    res.json(users);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   PUT api/admin/users/:id/role
+// @desc    Update user role
+// @access  Private (Admin only)
+router.put('/users/:id/role', [auth, hasPermission('manageUsers')], async (req, res) => {
+  try {
+    const { role } = req.body;
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+    const newRole = await Role.findOne({ name: role });
+    if (!newRole) {
+      return res.status(404).json({ msg: 'Role not found' });
+    }
+    user.roles = [newRole._id];
+    await user.save();
+    res.json(user);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/admin/activity
+// @desc    Get recent activity logs
+// @access  Private (Admin only)
+router.get('/activity', [auth, hasPermission('monitorActivity')], async (req, res) => {
+  try {
+    // Implement activity logging and retrieval logic here
+    res.json({ msg: 'Activity logs retrieved' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+module.exports = router;

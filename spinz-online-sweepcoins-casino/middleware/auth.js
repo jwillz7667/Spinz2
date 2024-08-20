@@ -29,6 +29,15 @@ const auth = async (req, res, next) => {
 };
 
 // Middleware to check if the user has a specific role
+const hasPermission = (permission) => {
+  return (req, res, next) => {
+    if (!req.user || !req.user.roles.some(role => role.permissions[permission])) {
+      return res.status(403).json({ msg: 'Access denied' });
+    }
+    next();
+  };
+};
+
 const hasRole = (roleName) => {
   return (req, res, next) => {
     if (!req.user || !req.user.roles.some(role => role.name === roleName)) {
@@ -38,7 +47,6 @@ const hasRole = (roleName) => {
   };
 };
 
-// Middleware to check if the user has any of the specified roles
 const hasAnyRole = (roleNames) => {
   return (req, res, next) => {
     if (!req.user || !req.user.roles.some(role => roleNames.includes(role.name))) {
