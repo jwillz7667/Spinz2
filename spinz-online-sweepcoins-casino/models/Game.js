@@ -9,9 +9,22 @@ const GameSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
-    enum: ['Slots', 'Poker', 'Blackjack']
+    enum: ['ClassicSlot', 'VideoSlot', 'ProgressiveJackpot', 'Poker', 'Blackjack']
   },
   description: {
+    type: String,
+    required: true
+  },
+  provider: {
+    type: String,
+    required: true
+  },
+  externalId: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  thumbnail: {
     type: String,
     required: true
   },
@@ -34,6 +47,10 @@ const GameSchema = new mongoose.Schema({
   maxPlayers: {
     type: Number,
     default: 1
+  },
+  metadata: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'GameMetadata'
   },
   achievements: [{
     name: String,
