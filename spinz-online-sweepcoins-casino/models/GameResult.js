@@ -4,24 +4,27 @@ const GameResultSchema = new mongoose.Schema({
   session: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'GameSession',
-    required: true
+    required: true,
+    index: true
   },
   player: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
+    index: true
   },
   game: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Game',
-    required: true
+    required: true,
+    index: true
   },
   bet: {
     type: Number,
     required: true
   },
   outcome: {
-    type: String,
+    type: mongoose.Schema.Types.Mixed,
     required: true
   },
   winnings: {
@@ -41,8 +44,13 @@ const GameResultSchema = new mongoose.Schema({
   },
   timestamp: {
     type: Date,
-    default: Date.now
-  }
-});
+    default: Date.now,
+    index: true
+  },
+  betType: String,
+  gameSpecificData: mongoose.Schema.Types.Mixed
+}, { timeseries: { timeField: 'timestamp', metaField: 'game', granularity: 'minutes' } });
+
+GameResultSchema.index({ player: 1, game: 1, timestamp: -1 });
 
 module.exports = mongoose.model('GameResult', GameResultSchema);
