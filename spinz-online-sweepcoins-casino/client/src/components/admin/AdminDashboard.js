@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import axios from 'axios';
-import { Line, Bar } from 'react-chartjs-2';
+import { Line, Bar, Pie } from 'react-chartjs-2';
 
 const AdminDashboard = ({ auth: { user } }) => {
   const [users, setUsers] = useState([]);
@@ -32,6 +32,16 @@ const AdminDashboard = ({ auth: { user } }) => {
           params: { startDate, endDate }
         });
         setTopGames(topGamesRes.data);
+
+        const playerBehaviorRes = await axios.get('/api/analytics/player-behavior', {
+          params: { startDate, endDate }
+        });
+        setPlayerBehavior(playerBehaviorRes.data);
+
+        const financialAnalysisRes = await axios.get('/api/analytics/financial', {
+          params: { startDate, endDate }
+        });
+        setFinancialAnalysis(financialAnalysisRes.data);
 
         const realTimeReportsRes = await axios.get('/api/admin/real-time-reports');
         setRealTimeReports(realTimeReportsRes.data);
@@ -141,6 +151,58 @@ const AdminDashboard = ({ auth: { user } }) => {
     );
   };
 
+  const renderPlayerBehaviorChart = () => {
+    if (!playerBehavior) return null;
+
+    const data = {
+      labels: playerBehavior.map(player => player.playerName),
+      datasets: [
+        {
+          label: 'Total Games Played',
+          data: playerBehavior.map(player => player.totalGamesPlayed),
+          backgroundColor: 'rgba(75,192,192,0.4)',
+        },
+        {
+          label: 'Net Profit',
+          data: playerBehavior.map(player => player.netProfit),
+          backgroundColor: 'rgba(255,99,132,0.4)',
+        }
+      ]
+    };
+
+    return (
+      <div className="player-behavior-chart">
+        <h3>Player Behavior Analysis</h3>
+        <Bar data={data} options={{ maintainAspectRatio: false }} />
+      </div>
+    );
+  };
+
+  const renderFinancialAnalysisChart = () => {
+    if (!financialAnalysis) return null;
+
+    const data = {
+      labels: financialAnalysis.map(item => item._id),
+      datasets: [{
+        data: financialAnalysis.map(item => item.totalAmount),
+        backgroundColor: [
+          '#FF6384',
+          '#36A2EB',
+          '#FFCE56',
+          '#4BC0C0',
+          '#9966FF'
+        ]
+      }]
+    };
+
+    return (
+      <div className="financial-analysis-chart">
+        <h3>Financial Analysis</h3>
+        <Pie data={data} options={{ maintainAspectRatio: false }} />
+      </div>
+    );
+  };
+
   return (
     <div className="admin-dashboard">
       <h2>Admin Dashboard</h2>
@@ -177,6 +239,8 @@ const AdminDashboard = ({ auth: { user } }) => {
         </table>
       </div>
       {renderAnalyticsChart()}
+      {renderPlayerBehaviorChart()}
+      {renderFinancialAnalysisChart()}
       {renderRealTimeReports()}
       <div className="top-games">
         <h3>Top Performing Games</h3>

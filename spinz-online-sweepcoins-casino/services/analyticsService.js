@@ -2,6 +2,7 @@ const GameResult = require('../models/GameResult');
 const User = require('../models/User');
 const Game = require('../models/Game');
 const Transaction = require('../models/Transaction');
+const DataProcessingService = require('./dataProcessingService');
 
 class AnalyticsService {
   async getRealTimeGamePerformance(timeFrame) {
@@ -95,30 +96,23 @@ class AnalyticsService {
   }
 
   async getTopPerformingGames(startDate, endDate, limit = 10) {
-    const results = await GameResult.aggregate([
-      { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
-      { $group: {
-        _id: '$game',
-        totalBets: { $sum: '$bet' },
-        totalWins: { $sum: '$winnings' },
-        totalSpins: { $sum: 1 }
-      }},
-      { $project: {
-        rtp: { $multiply: [{ $divide: ['$totalWins', '$totalBets'] }, 100] },
-        totalSpins: 1
-      }},
-      { $sort: { rtp: -1 } },
-      { $limit: limit }
-    ]);
+    const gameOutcomes = await DataProcessingService.aggregateGameOutcomes(startDate, endDate);
+    return gameOutcomes
+      .sort((a, b) => b.rtp - a.rtp)
+      .slice(0, limit)
+      .map(game => ({
+        gameName: game.gameName,
+        rtp: game.rtp,
+        totalSpins: game.totalGamesPlayed
+      }));
+  }
 
-    return Promise.all(results.map(async (result) => {
-      const game = await Game.findById(result._id);
-      return {
-        gameName: game.name,
-        rtp: result.rtp,
-        totalSpins: result.totalSpins
-      };
-    }));
+  async getPlayerBehaviorAnalysis(startDate, endDate) {
+    return await DataProcessingService.aggregatePlayerBehavior(startDate, endDate);
+  }
+
+  async getFinancialAnalysis(startDate, endDate) {
+    return await DataProcessingService.aggregateFinancialData(startDate, endDate);
   }
 }
 

@@ -49,8 +49,20 @@ const GameResultSchema = new mongoose.Schema({
   },
   betType: String,
   gameSpecificData: mongoose.Schema.Types.Mixed
-}, { timeseries: { timeField: 'timestamp', metaField: 'game', granularity: 'minutes' } });
+}, { 
+  timeseries: { 
+    timeField: 'timestamp', 
+    metaField: 'game', 
+    granularity: 'minutes' 
+  },
+  indexes: [
+    { player: 1, game: 1, timestamp: -1 },
+    { game: 1, timestamp: -1 },
+    { player: 1, timestamp: -1 },
+    { timestamp: -1 }
+  ]
+});
 
-GameResultSchema.index({ player: 1, game: 1, timestamp: -1 });
+GameResultSchema.index({ bet: 1, winnings: 1 });
 
 module.exports = mongoose.model('GameResult', GameResultSchema);
