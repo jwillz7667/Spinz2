@@ -35,6 +35,10 @@ const GameResultSchema = new mongoose.Schema({
   achievementsUnlocked: [{
     type: String
   }],
+  bonusTriggered: {
+    type: Boolean,
+    default: false
+  },
   timestamp: {
     type: Date,
     default: Date.now
