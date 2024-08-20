@@ -58,7 +58,7 @@ const setupWebSocket = (io) => {
       socket.user = user;
       next();
     } catch (err) {
-      return next(new Error('Authentication error'));
+      next(new Error('Invalid token'));
     }
   });
 
