@@ -5,6 +5,7 @@ const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const { auth, hasRole, hasAnyRole } = require('./middleware/auth');
 const setupWebSocket = require('./websocket/setup');
+const rateLimit = require('express-rate-limit');
 
 // Load environment variables
 dotenv.config();
@@ -26,6 +27,19 @@ setupWebSocket(io);
 
 // Middleware
 app.use(express.json());
+
+// Apply rate limiting to all requests
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
+app.use(limiter);
+
+// Apply stricter rate limiting to authentication routes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5 // limit each IP to 5 requests per windowMs
+});
 
 // Routes
 app.get('/', (req, res) => {
