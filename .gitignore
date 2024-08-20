@@ -1,1 +1,52 @@
 .aider*
+# Sensitive configuration files
+config/default.json
+config/production.json
+config/development.json
+
+# Environment variables
+.env
+
+# Logs
+logs
+*.log
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Database files
+*.sqlite
+
+# API keys and secrets
+*.pem
+*.key
+
+# User-specific files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Test coverage
+coverage/
+
+# Miscellaneous
+*.bak
+*.cache
