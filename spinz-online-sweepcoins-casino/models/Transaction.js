@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const realTimeDataService = require('../services/realTimeDataService');
 
 const TransactionSchema = new mongoose.Schema({
   user: {
@@ -57,6 +58,12 @@ const TransactionSchema = new mongoose.Schema({
 TransactionSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
   next();
+});
+
+TransactionSchema.post('save', function(doc) {
+  if (doc.status === 'completed') {
+    realTimeDataService.collectFinancialData(doc);
+  }
 });
 
 module.exports = mongoose.model('Transaction', TransactionSchema);
