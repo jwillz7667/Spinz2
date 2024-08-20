@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { joinGame, leaveGame, sendGameAction, onGameUpdate, onPlayerJoined, onPlayerLeft } from '../../utils/socket';
 import Chat from '../chat/Chat';
 import WinCelebration from './WinCelebration';
+import GameSettings from './GameSettings';
 import './Game.css';
 
 const Game = () => {
@@ -13,7 +14,13 @@ const Game = () => {
   const [isSpinning, setIsSpinning] = useState(false);
   const [showWinCelebration, setShowWinCelebration] = useState(false);
   const [winAmount, setWinAmount] = useState(0);
+  const [settings, setSettings] = useState({
+    sound: true,
+    gameSpeed: 1,
+    highQualityGraphics: true,
+  });
   const audioRef = useRef(null);
+  const reelRefs = useRef([]);
 
   useEffect(() => {
     joinGame(gameId);
@@ -44,9 +51,7 @@ const Game = () => {
     setIsSpinning(true);
     sendGameAction(gameId, { type: 'spin', betAmount });
     playSound('spin');
-    setTimeout(() => {
-      setIsSpinning(false);
-    }, 3000);
+    animateReels();
   };
 
   const handleBetChange = (amount) => {
@@ -54,10 +59,29 @@ const Game = () => {
   };
 
   const playSound = (soundType) => {
-    if (audioRef.current) {
+    if (settings.sound && audioRef.current) {
       audioRef.current.src = `/sounds/${soundType}.mp3`;
       audioRef.current.play();
     }
+  };
+
+  const animateReels = () => {
+    reelRefs.current.forEach((reel, index) => {
+      reel.style.transition = `transform ${2 + index * 0.5}s cubic-bezier(0.25, 0.1, 0.25, 1)`;
+      reel.style.transform = `translateY(-${Math.floor(Math.random() * 10) * 100}%)`;
+    });
+
+    setTimeout(() => {
+      reelRefs.current.forEach(reel => {
+        reel.style.transition = 'none';
+        reel.style.transform = 'translateY(0)';
+      });
+      setIsSpinning(false);
+    }, 3000 / settings.gameSpeed);
+  };
+
+  const updateSettings = (newSettings) => {
+    setSettings(newSettings);
   };
 
   if (!gameState) {
@@ -65,14 +89,16 @@ const Game = () => {
   }
 
   return (
-    <div className="game-container">
+    <div className={`game-container ${settings.highQualityGraphics ? 'high-quality' : ''}`}>
       <h2 className="game-title">Slot Game: {gameState.name}</h2>
       <div className="game-content">
         <div className={`slot-machine ${isSpinning ? 'spinning' : ''}`}>
           {gameState.reels.map((reel, index) => (
-            <div key={index} className="reel">
+            <div key={index} className="reel" ref={el => reelRefs.current[index] = el}>
               {reel.map((symbol, symIndex) => (
-                <div key={symIndex} className="symbol">{symbol}</div>
+                <div key={symIndex} className="symbol">
+                  <img src={`/images/symbols/${symbol}.png`} alt={symbol} />
+                </div>
               ))}
             </div>
           ))}
@@ -107,6 +133,7 @@ const Game = () => {
           onClose={() => setShowWinCelebration(false)}
         />
       )}
+      <GameSettings settings={settings} updateSettings={updateSettings} />
       <audio ref={audioRef} />
     </div>
   );

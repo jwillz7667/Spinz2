@@ -1,0 +1,53 @@
+.game-settings {
+  margin-top: 20px;
+  width: 100%;
+  max-width: 400px;
+}
+
+.settings-toggle {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 20px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  width: 100%;
+}
+
+.settings-toggle:hover {
+  background-color: #2980b9;
+}
+
+.settings-panel {
+  background-color: rgba(52, 73, 94, 0.9);
+  border-radius: 10px;
+  padding: 15px;
+  margin-top: 10px;
+}
+
+.settings-panel h3 {
+  margin-top: 0;
+  color: #f1c40f;
+}
+
+.setting {
+  margin-bottom: 10px;
+}
+
+.setting label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #ecf0f1;
+}
+
+.setting input[type="checkbox"] {
+  margin-left: 10px;
+}
+
+.setting input[type="range"] {
+  width: 60%;
+  margin-left: 10px;
+}
