@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { connect } from 'react-redux';
+import { Link, Redirect } from 'react-router-dom';
+import { setAlert } from '../../actions/alert';
+import { register } from '../../actions/auth';
+import PropTypes from 'prop-types';
 
-const Register = () => {
+const Register = ({ setAlert, register, isAuthenticated }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -11,17 +15,21 @@ const Register = () => {
 
   const { name, email, password, password2 } = formData;
 
-  const onChange = e => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const onChange = e =>
+    setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const onSubmit = async e => {
     e.preventDefault();
     if (password !== password2) {
-      console.log('Passwords do not match');
+      setAlert('Passwords do not match', 'danger');
     } else {
-      // TODO: Implement registration logic
-      console.log('Registration submit', formData);
+      register({ name, email, password });
     }
   };
+
+  if (isAuthenticated) {
+    return <Redirect to="/games" />;
+  }
 
   return (
     <div className="auth-form">
@@ -78,4 +86,14 @@ const Register = () => {
   );
 };
 
-export default Register;
+Register.propTypes = {
+  setAlert: PropTypes.func.isRequired,
+  register: PropTypes.func.isRequired,
+  isAuthenticated: PropTypes.bool
+};
+
+const mapStateToProps = state => ({
+  isAuthenticated: state.auth.isAuthenticated
+});
+
+export default connect(mapStateToProps, { setAlert, register })(Register);
