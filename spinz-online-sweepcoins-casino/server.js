@@ -6,6 +6,8 @@ const connectDB = require('./config/db');
 const { auth, hasRole, hasAnyRole } = require('./middleware/auth');
 const setupWebSocket = require('./websocket/setup');
 const rateLimit = require('express-rate-limit');
+const csrf = require('csrf');
+const xss = require('xss');
 
 // Load environment variables
 dotenv.config();
@@ -27,6 +29,20 @@ setupWebSocket(io);
 
 // Middleware
 app.use(express.json());
+
+// CSRF protection
+const csrfProtection = csrf({ cookie: true });
+app.use(csrfProtection);
+
+// XSS protection
+app.use((req, res, next) => {
+  for (let key in req.body) {
+    if (typeof req.body[key] === 'string') {
+      req.body[key] = xss(req.body[key]);
+    }
+  }
+  next();
+});
 
 // Apply rate limiting to all requests
 const limiter = rateLimit({
