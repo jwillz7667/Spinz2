@@ -12,11 +12,19 @@ class SlotGameIntegration {
       const response = await axios.get(`${this.apiUrl}/games`, {
         headers: { 'Authorization': `Bearer ${this.apiKey}` }
       });
-      return response.data;
+      return this.categorizeGames(response.data);
     } catch (error) {
       console.error('Error fetching game list:', error);
       throw error;
     }
+  }
+
+  categorizeGames(games) {
+    return {
+      classicSlots: games.filter(game => game.type === 'classic'),
+      videoSlots: games.filter(game => game.type === 'video'),
+      progressiveJackpots: games.filter(game => game.type === 'progressive')
+    };
   }
 
   async launchGame(gameId, userId, mode = 'real') {
