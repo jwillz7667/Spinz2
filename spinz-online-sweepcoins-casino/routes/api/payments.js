@@ -2,9 +2,16 @@ const express = require('express');
 const router = express.Router();
 const { check, validationResult } = require('express-validator');
 const { auth } = require('../../middleware/auth');
-const { processStripePayment, processPayPalPayment, processCryptoPayment } = require('../../services/paymentService');
+const { 
+  processStripePayment, 
+  processPayPalPayment, 
+  processCryptoPayment, 
+  encryptPaymentData, 
+  decryptPaymentData 
+} = require('../../services/paymentService');
 const User = require('../../models/User');
 const Transaction = require('../../models/Transaction');
+const logger = require('../../utils/logger');
 
 // @route   POST api/payments/deposit
 // @desc    Process a deposit
@@ -28,6 +35,9 @@ router.post('/deposit', [
   try {
     let paymentResult;
 
+    // Encrypt sensitive payment details
+    const encryptedPaymentDetails = encryptPaymentData(paymentDetails);
+
     switch (paymentMethod) {
       case 'stripe':
         paymentResult = await processStripePayment(amount * 100, currency, paymentDetails.paymentMethodId, req.user.id);
@@ -50,7 +60,7 @@ router.post('/deposit', [
       currency,
       paymentMethod,
       status: 'completed',
-      details: paymentResult
+      details: encryptedPaymentDetails
     });
     await transaction.save();
 
@@ -59,10 +69,11 @@ router.post('/deposit', [
     user.sweepcoinsBalance += amount;
     await user.save();
 
-    res.json({ msg: 'Deposit successful', transaction, newBalance: user.sweepcoinsBalance });
+    logger.info(`Deposit successful for user ${req.user.id}: ${amount} ${currency} via ${paymentMethod}`);
+    res.json({ msg: 'Deposit successful', transaction: transaction._id, newBalance: user.sweepcoinsBalance });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    logger.error(`Deposit failed for user ${req.user.id}: ${err.message}`);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
   }
 });
 
@@ -92,6 +103,9 @@ router.post('/withdraw', [
       return res.status(400).json({ msg: 'Insufficient balance' });
     }
 
+    // Encrypt sensitive withdrawal details
+    const encryptedWithdrawalDetails = encryptPaymentData(withdrawalDetails);
+
     // Create a new transaction record
     const transaction = new Transaction({
       user: req.user.id,
@@ -100,7 +114,7 @@ router.post('/withdraw', [
       currency,
       paymentMethod: withdrawalMethod,
       status: 'pending',
-      details: withdrawalDetails
+      details: encryptedWithdrawalDetails
     });
     await transaction.save();
 
@@ -108,10 +122,11 @@ router.post('/withdraw', [
     user.sweepcoinsBalance -= amount;
     await user.save();
 
-    res.json({ msg: 'Withdrawal request submitted', transaction, newBalance: user.sweepcoinsBalance });
+    logger.info(`Withdrawal request submitted for user ${req.user.id}: ${amount} ${currency} via ${withdrawalMethod}`);
+    res.json({ msg: 'Withdrawal request submitted', transaction: transaction._id, newBalance: user.sweepcoinsBalance });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    logger.error(`Withdrawal failed for user ${req.user.id}: ${err.message}`);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
   }
 });
 
