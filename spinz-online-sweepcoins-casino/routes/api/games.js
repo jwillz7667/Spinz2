@@ -102,14 +102,20 @@ router.post('/:id/play', [
       return res.status(404).json({ msg: 'Game not found' });
     }
 
-    const user = await User.findById(req.user.id);
+    const user = await User.findById(req.user.id).populate('wallets');
     const bet = parseFloat(req.body.bet);
+    const currency = req.body.currency || 'USD'; // Default to USD if not specified
 
     if (bet < game.minBet || bet > game.maxBet) {
       return res.status(400).json({ msg: 'Invalid bet amount' });
     }
 
-    if (user.sweepcoinsBalance < bet) {
+    const wallet = user.wallets.find(w => w.currency === currency);
+    if (!wallet) {
+      return res.status(400).json({ msg: 'Wallet not found for this currency' });
+    }
+
+    if (wallet.balance < bet) {
       return res.status(400).json({ msg: 'Insufficient balance' });
     }
 
@@ -126,9 +132,12 @@ router.post('/:id/play', [
         return res.status(400).json({ msg: 'Unsupported game type' });
     }
 
-    // Update user balance
-    user.sweepcoinsBalance -= bet;
-    user.sweepcoinsBalance += payout;
+    // Update wallet balance
+    wallet.balance -= bet;
+    wallet.balance += payout;
+    await wallet.save();
+
+    // Update user's total winnings
     user.totalWinnings += payout > bet ? payout - bet : 0;
     await user.save();
 
@@ -138,14 +147,38 @@ router.post('/:id/play', [
       game: game._id,
       bet,
       outcome: JSON.stringify(result),
-      winnings: payout
+      winnings: payout,
+      currency
     });
     await gameResult.save();
+
+    // Create transaction records
+    const betTransaction = new Transaction({
+      user: user._id,
+      type: 'game_bet',
+      amount: bet,
+      currency,
+      fromWallet: wallet._id,
+      game: game._id,
+      status: 'completed'
+    });
+    await betTransaction.save();
+
+    const winTransaction = new Transaction({
+      user: user._id,
+      type: 'game_win',
+      amount: payout,
+      currency,
+      toWallet: wallet._id,
+      game: game._id,
+      status: 'completed'
+    });
+    await winTransaction.save();
 
     res.json({
       result,
       payout,
-      newBalance: user.sweepcoinsBalance
+      newBalance: wallet.balance
     });
   } catch (err) {
     console.error(err.message);

@@ -29,6 +29,10 @@ const UserSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Wallet'
   }],
+  defaultWallet: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Wallet'
+  },
   totalWinnings: {
     type: Number,
     default: 0

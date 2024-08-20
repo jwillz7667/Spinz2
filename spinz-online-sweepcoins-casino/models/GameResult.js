@@ -28,6 +28,10 @@ const GameResultSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  currency: {
+    type: String,
+    required: true
+  },
   achievementsUnlocked: [{
     type: String
   }],
