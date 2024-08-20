@@ -5,17 +5,26 @@ import Footer from './components/layout/Footer';
 import Home from './components/pages/Home';
 import Games from './components/pages/Games';
 import Profile from './components/pages/Profile';
+import Login from './components/auth/Login';
+import Register from './components/auth/Register';
+import Wallet from './components/wallet/Wallet';
+import PrivateRoute from './components/routing/PrivateRoute';
 
 function App() {
   return (
     <Router>
       <div className="App">
         <Header />
-        <Switch>
-          <Route exact path="/" component={Home} />
-          <Route path="/games" component={Games} />
-          <Route path="/profile" component={Profile} />
-        </Switch>
+        <main className="container">
+          <Switch>
+            <Route exact path="/" component={Home} />
+            <Route path="/login" component={Login} />
+            <Route path="/register" component={Register} />
+            <PrivateRoute path="/games" component={Games} />
+            <PrivateRoute path="/profile" component={Profile} />
+            <PrivateRoute path="/wallet" component={Wallet} />
+          </Switch>
+        </main>
         <Footer />
       </div>
     </Router>
