@@ -7,6 +7,7 @@ const Wallet = require('../../models/Wallet');
 const Transaction = require('../../models/Transaction');
 const logger = require('../../utils/logger');
 const { convertCurrency } = require('../../utils/currencyConverter');
+const { WalletError } = require('../../utils/customErrors');
 
 // @route   GET api/wallets
 // @desc    Get user's wallets
@@ -96,7 +97,7 @@ router.post('/deposit', [
     const user = await User.findById(req.user.id).populate('wallets');
     
     if (!user) {
-      return res.status(404).json({ msg: 'User not found' });
+      throw new WalletError('User not found', 404);
     }
 
     let wallet = user.wallets.find(w => w.currency === currency);
@@ -129,8 +130,12 @@ router.post('/deposit', [
     });
     await transaction.save();
 
+    logger.info(`Deposit successful: User ${user._id} deposited ${depositAmount} ${currency}`);
     res.json({ wallet, transaction });
   } catch (err) {
+    if (err instanceof WalletError) {
+      return res.status(err.statusCode).json({ msg: err.message });
+    }
     logger.error(`Error depositing funds: ${err.message}`);
     res.status(500).json({ msg: 'Server Error', error: err.message });
   }

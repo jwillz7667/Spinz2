@@ -119,13 +119,14 @@ router.post('/:id/play', [
       return res.status(400).json({ msg: 'Insufficient balance' });
     }
 
-    let result, payout;
+    let result, payout, expectedReturn;
 
     switch (game.type) {
       case 'Slots':
         const slotMachine = new SlotMachine(3, game.gameSettings.symbols || undefined);
         result = slotMachine.spin();
         payout = slotMachine.calculatePayout(bet, result);
+        expectedReturn = slotMachine.calculateExpectedReturn();
         break;
       // Add cases for other game types here
       default:
@@ -164,26 +165,64 @@ router.post('/:id/play', [
     });
     await betTransaction.save();
 
-    const winTransaction = new Transaction({
-      user: user._id,
-      type: 'game_win',
-      amount: payout,
-      currency,
-      toWallet: wallet._id,
-      game: game._id,
-      status: 'completed'
-    });
-    await winTransaction.save();
+    if (payout > 0) {
+      const winTransaction = new Transaction({
+        user: user._id,
+        type: 'game_win',
+        amount: payout,
+        currency,
+        toWallet: wallet._id,
+        game: game._id,
+        status: 'completed'
+      });
+      await winTransaction.save();
+    }
+
+    // Check for achievements
+    const achievements = await checkAchievements(user, game, gameResult);
+
+    logger.info(`Game played: User ${user._id} bet ${bet} ${currency} and won ${payout} ${currency} in ${game.name}`);
 
     res.json({
       result,
       payout,
-      newBalance: wallet.balance
+      newBalance: wallet.balance,
+      expectedReturn,
+      achievements
     });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    logger.error(`Error playing game: ${err.message}`);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
   }
 });
+
+async function checkAchievements(user, game, gameResult) {
+  const unlockedAchievements = [];
+
+  for (const achievement of game.achievements) {
+    if (!user.achievementsUnlocked.some(a => a.achievement === achievement.name)) {
+      if (await evaluateAchievementCriteria(user, game, gameResult, achievement.criteria)) {
+        user.achievementsUnlocked.push({
+          game: game._id,
+          achievement: achievement.name,
+          unlockedAt: new Date()
+        });
+        unlockedAchievements.push(achievement.name);
+      }
+    }
+  }
+
+  if (unlockedAchievements.length > 0) {
+    await user.save();
+  }
+
+  return unlockedAchievements;
+}
+
+async function evaluateAchievementCriteria(user, game, gameResult, criteria) {
+  // Implement the logic to evaluate achievement criteria
+  // This is a placeholder and should be replaced with actual logic
+  return Math.random() < 0.1; // 10% chance of unlocking an achievement
+}
 
 module.exports = router;

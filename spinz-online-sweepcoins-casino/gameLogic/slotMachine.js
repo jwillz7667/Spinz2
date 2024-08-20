@@ -4,6 +4,14 @@ class SlotMachine {
   constructor(reels = 3, symbols = ['🍒', '🍋', '🍊', '🍇', '🔔', '💎']) {
     this.reels = reels;
     this.symbols = symbols;
+    this.payoutTable = {
+      '🍒': 2,
+      '🍋': 3,
+      '🍊': 4,
+      '🍇': 5,
+      '🔔': 8,
+      '💎': 10
+    };
   }
 
   spin() {
@@ -32,13 +40,43 @@ class SlotMachine {
     
     if (uniqueSymbols.size === 1) {
       // All symbols are the same
-      return bet * 10;
+      return bet * this.payoutTable[result[0]];
     } else if (uniqueSymbols.size === 2) {
       // Two matching symbols
-      return bet * 2;
+      const [symbol1, symbol2] = uniqueSymbols;
+      const count1 = result.filter(s => s === symbol1).length;
+      const count2 = result.filter(s => s === symbol2).length;
+      const majorSymbol = count1 > count2 ? symbol1 : symbol2;
+      return bet * (this.payoutTable[majorSymbol] / 2);
     }
     
     return 0;
+  }
+
+  getSymbolProbabilities() {
+    const totalSymbols = this.symbols.length;
+    return this.symbols.reduce((acc, symbol) => {
+      acc[symbol] = 1 / totalSymbols;
+      return acc;
+    }, {});
+  }
+
+  calculateExpectedReturn() {
+    const probabilities = this.getSymbolProbabilities();
+    let expectedReturn = 0;
+
+    for (let i = 0; i < this.symbols.length; i++) {
+      for (let j = 0; j < this.symbols.length; j++) {
+        for (let k = 0; k < this.symbols.length; k++) {
+          const result = [this.symbols[i], this.symbols[j], this.symbols[k]];
+          const payout = this.calculatePayout(1, result);
+          const probability = probabilities[this.symbols[i]] * probabilities[this.symbols[j]] * probabilities[this.symbols[k]];
+          expectedReturn += payout * probability;
+        }
+      }
+    }
+
+    return expectedReturn;
   }
 }
 
