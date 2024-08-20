@@ -9,5 +9,14 @@
   "emailUser": "your_email_user",
   "emailPassword": "your_email_password",
   "emailFrom": "noreply@spinz-online.com",
-  "clientURL": "http://localhost:3000"
+  "clientURL": "http://localhost:3000",
+  "stripe": {
+    "publicKey": "your_stripe_public_key",
+    "secretKey": "your_stripe_secret_key"
+  },
+  "paypal": {
+    "clientId": "your_paypal_client_id",
+    "clientSecret": "your_paypal_client_secret"
+  },
+  "supportedCurrencies": ["USD", "EUR", "GBP", "BTC", "ETH"]
 }

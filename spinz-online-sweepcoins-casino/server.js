@@ -38,6 +38,9 @@ app.use('/api/users', require('./routes/api/users'));
 // Game routes (protected, accessible by players and admins)
 app.use('/api/games', [auth, hasAnyRole(['player', 'admin'])], require('./routes/api/games'));
 
+// Payment routes (protected)
+app.use('/api/payments', auth, require('./routes/api/payments'));
+
 // Admin routes (protected and admin-only)
 app.use('/api/admin', [auth, hasRole('admin')], require('./routes/api/admin'));
 app.use('/api/admin/users', [auth, hasRole('admin')], require('./routes/api/admin/users'));
