@@ -48,6 +48,16 @@ const UserSchema = new mongoose.Schema({
       default: Date.now
     }
   }],
+  mfaEnabled: {
+    type: Boolean,
+    default: false
+  },
+  mfaSecret: String,
+  devices: [{
+    deviceId: String,
+    lastLogin: Date,
+    isVerified: Boolean
+  }],
   createdAt: {
     type: Date,
     default: Date.now
