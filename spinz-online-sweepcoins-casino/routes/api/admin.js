@@ -102,12 +102,34 @@ router.delete('/games/:id', async (req, res) => {
   }
 });
 
+// @route   GET api/admin/real-time-reports
+// @desc    Get real-time reports
+// @access  Private (Admin only)
+router.get('/real-time-reports', [auth, hasPermission('viewAnalytics')], async (req, res) => {
+  try {
+    const timeFrame = 3600000; // 1 hour in milliseconds
+    const gamePerformance = await AnalyticsService.getRealTimeGamePerformance(timeFrame);
+    const userActivity = await AnalyticsService.getRealTimeUserActivity(timeFrame);
+    const financialTransactions = await AnalyticsService.getRealTimeFinancialTransactions(timeFrame);
+
+    res.json({
+      gamePerformance,
+      userActivity: userActivity[0],
+      financialTransactions
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 module.exports = router;
 const express = require('express');
 const router = express.Router();
 const { auth, hasPermission } = require('../../middleware/auth');
 const User = require('../../models/User');
 const Role = require('../../models/Role');
+const AnalyticsService = require('../../services/analyticsService');
 
 // @route   GET api/admin/users
 // @desc    Get all users

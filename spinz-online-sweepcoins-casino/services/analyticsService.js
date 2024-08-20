@@ -1,8 +1,59 @@
 const GameResult = require('../models/GameResult');
 const User = require('../models/User');
 const Game = require('../models/Game');
+const Transaction = require('../models/Transaction');
 
 class AnalyticsService {
+  async getRealTimeGamePerformance(timeFrame) {
+    const startTime = new Date(Date.now() - timeFrame);
+    const results = await GameResult.aggregate([
+      { $match: { createdAt: { $gte: startTime } } },
+      { $group: {
+        _id: '$game',
+        totalBets: { $sum: '$bet' },
+        totalWins: { $sum: '$winnings' },
+        totalSpins: { $sum: 1 }
+      }},
+      { $sort: { totalSpins: -1 } }
+    ]);
+
+    return Promise.all(results.map(async (result) => {
+      const game = await Game.findById(result._id);
+      return {
+        gameName: game.name,
+        totalBets: result.totalBets,
+        totalWins: result.totalWins,
+        totalSpins: result.totalSpins,
+        rtp: (result.totalWins / result.totalBets) * 100
+      };
+    }));
+  }
+
+  async getRealTimeUserActivity(timeFrame) {
+    const startTime = new Date(Date.now() - timeFrame);
+    return await User.aggregate([
+      { $match: { lastActivity: { $gte: startTime } } },
+      { $group: {
+        _id: null,
+        activeUsers: { $sum: 1 },
+        newRegistrations: {
+          $sum: { $cond: [{ $gte: ['$createdAt', startTime] }, 1, 0] }
+        }
+      }}
+    ]);
+  }
+
+  async getRealTimeFinancialTransactions(timeFrame) {
+    const startTime = new Date(Date.now() - timeFrame);
+    return await Transaction.aggregate([
+      { $match: { createdAt: { $gte: startTime } } },
+      { $group: {
+        _id: '$type',
+        totalAmount: { $sum: '$amount' },
+        count: { $sum: 1 }
+      }}
+    ]);
+  }
   async getSlotGameMetrics(gameId, startDate, endDate) {
     const results = await GameResult.find({
       game: gameId,

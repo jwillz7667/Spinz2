@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
 import axios from 'axios';
-import { Line } from 'react-chartjs-2';
+import { Line, Bar } from 'react-chartjs-2';
 
 const AdminDashboard = ({ auth: { user } }) => {
   const [users, setUsers] = useState([]);
   const [activityLogs, setActivityLogs] = useState([]);
   const [gameAnalytics, setGameAnalytics] = useState(null);
   const [topGames, setTopGames] = useState([]);
+  const [realTimeReports, setRealTimeReports] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -31,12 +32,27 @@ const AdminDashboard = ({ auth: { user } }) => {
           params: { startDate, endDate }
         });
         setTopGames(topGamesRes.data);
+
+        const realTimeReportsRes = await axios.get('/api/admin/real-time-reports');
+        setRealTimeReports(realTimeReportsRes.data);
       } catch (err) {
         console.error('Error fetching admin data:', err);
       }
     };
 
     fetchData();
+
+    // Set up interval to fetch real-time reports every minute
+    const interval = setInterval(async () => {
+      try {
+        const realTimeReportsRes = await axios.get('/api/admin/real-time-reports');
+        setRealTimeReports(realTimeReportsRes.data);
+      } catch (err) {
+        console.error('Error fetching real-time reports:', err);
+      }
+    }, 60000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const handleRoleChange = async (userId, newRole) => {
@@ -67,6 +83,60 @@ const AdminDashboard = ({ auth: { user } }) => {
       <div className="analytics-chart">
         <h3>Game Analytics</h3>
         <Line data={data} />
+      </div>
+    );
+  };
+
+  const renderRealTimeReports = () => {
+    if (!realTimeReports) return null;
+
+    const { gamePerformance, userActivity, financialTransactions } = realTimeReports;
+
+    return (
+      <div className="real-time-reports">
+        <h3>Real-Time Reports (Last Hour)</h3>
+        <div className="game-performance">
+          <h4>Game Performance</h4>
+          <Bar
+            data={{
+              labels: gamePerformance.map(game => game.gameName),
+              datasets: [
+                {
+                  label: 'Total Spins',
+                  data: gamePerformance.map(game => game.totalSpins),
+                  backgroundColor: 'rgba(75,192,192,0.4)',
+                },
+                {
+                  label: 'RTP (%)',
+                  data: gamePerformance.map(game => game.rtp),
+                  backgroundColor: 'rgba(255,99,132,0.4)',
+                }
+              ]
+            }}
+            options={{
+              scales: {
+                y: {
+                  beginAtZero: true
+                }
+              }
+            }}
+          />
+        </div>
+        <div className="user-activity">
+          <h4>User Activity</h4>
+          <p>Active Users: {userActivity.activeUsers}</p>
+          <p>New Registrations: {userActivity.newRegistrations}</p>
+        </div>
+        <div className="financial-transactions">
+          <h4>Financial Transactions</h4>
+          <ul>
+            {financialTransactions.map((transaction, index) => (
+              <li key={index}>
+                {transaction._id}: ${transaction.totalAmount.toFixed(2)} ({transaction.count} transactions)
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     );
   };
@@ -107,6 +177,7 @@ const AdminDashboard = ({ auth: { user } }) => {
         </table>
       </div>
       {renderAnalyticsChart()}
+      {renderRealTimeReports()}
       <div className="top-games">
         <h3>Top Performing Games</h3>
         <ul>
