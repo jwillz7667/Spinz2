@@ -33,7 +33,8 @@
     "qrcode": "^1.5.3",
     "axios": "^1.5.0",
     "config": "^3.3.9",
-    "@react-oauth/google": "^0.11.1"
+    "@react-oauth/google": "^0.11.1",
+    "react-facebook-login": "^5.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1",
