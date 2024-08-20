@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { connect } from 'react-redux';
-import { Link, Redirect } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { setAlert } from '../../actions/alert';
 import { register } from '../../actions/auth';
 import PropTypes from 'prop-types';
 import ReCAPTCHA from "react-google-recaptcha";
-import { GoogleLogin } from 'react-google-login';
+import { GoogleLogin } from '@react-oauth/google';
 import { FacebookLogin } from 'react-facebook-login';
 
 const Register = ({ setAlert, register, isAuthenticated }) => {
@@ -52,19 +52,23 @@ const Register = ({ setAlert, register, isAuthenticated }) => {
     setCaptchaToken(value);
   };
 
-  const onSocialLoginSuccess = (response) => {
-    const { name, email } = response.profileObj;
-    localStorage.setItem('socialLoginData', JSON.stringify({ name, email }));
-    window.location.reload();
+  const onGoogleLoginSuccess = (credentialResponse) => {
+    console.log(credentialResponse);
+    // Here you would typically send the credential to your backend
+    // and handle the login/registration process there
+    setAlert('Google login successful', 'success');
   };
 
-  const onSocialLoginFailure = (error) => {
-    console.error('Social login failed:', error);
-    setAlert('Social login failed. Please try again.', 'danger');
+  const onFacebookLoginSuccess = (response) => {
+    if (response.status !== 'unknown') {
+      const { name, email } = response;
+      localStorage.setItem('socialLoginData', JSON.stringify({ name, email }));
+      window.location.reload();
+    }
   };
 
   if (isAuthenticated) {
-    return <Redirect to="/games" />;
+    return <Navigate to="/games" />;
   }
 
   return (
@@ -121,18 +125,16 @@ const Register = ({ setAlert, register, isAuthenticated }) => {
       </form>
       <div className="social-login">
         <GoogleLogin
-          clientId="YOUR_GOOGLE_CLIENT_ID"
-          buttonText="Sign up with Google"
-          onSuccess={onSocialLoginSuccess}
-          onFailure={onSocialLoginFailure}
-          cookiePolicy={'single_host_origin'}
+          onSuccess={onGoogleLoginSuccess}
+          onError={() => {
+            console.log('Login Failed');
+          }}
         />
         <FacebookLogin
           appId="YOUR_FACEBOOK_APP_ID"
           autoLoad={false}
           fields="name,email,picture"
-          callback={onSocialLoginSuccess}
-          onFailure={onSocialLoginFailure}
+          callback={onFacebookLoginSuccess}
           cssClass="facebook-button"
           textButton="Sign up with Facebook"
         />
