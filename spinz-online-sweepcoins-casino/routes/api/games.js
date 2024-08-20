@@ -7,6 +7,7 @@ const Game = require('../../models/Game');
 const User = require('../../models/User');
 const GameResult = require('../../models/GameResult');
 const SlotMachine = require('../../gameLogic/slotMachine');
+const slotGameIntegration = require('../../services/slotGameIntegration');
 
 // @route   GET api/games
 // @desc    Get all games
@@ -15,6 +16,59 @@ router.get('/', auth, async (req, res) => {
   try {
     const games = await Game.find().select('-rules -payouts');
     res.json(games);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/games/slots
+// @desc    Get all slot games
+// @access  Private
+router.get('/slots', auth, async (req, res) => {
+  try {
+    const slotGames = await slotGameIntegration.getGameList();
+    res.json(slotGames);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST api/games/slots/launch
+// @desc    Launch a slot game
+// @access  Private
+router.post('/slots/launch', auth, async (req, res) => {
+  try {
+    const { gameId, mode } = req.body;
+    const launchData = await slotGameIntegration.launchGame(gameId, req.user.id, mode);
+    res.json(launchData);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/games/slots/result/:sessionId
+// @desc    Get slot game result
+// @access  Private
+router.get('/slots/result/:sessionId', auth, async (req, res) => {
+  try {
+    const result = await slotGameIntegration.getGameResult(req.params.sessionId);
+    res.json(result);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/games/slots/jackpots
+// @desc    Get jackpot information
+// @access  Private
+router.get('/slots/jackpots', auth, async (req, res) => {
+  try {
+    const jackpotInfo = await slotGameIntegration.getJackpotInfo();
+    res.json(jackpotInfo);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

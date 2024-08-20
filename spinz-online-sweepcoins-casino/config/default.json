@@ -18,5 +18,7 @@
     "clientId": "your_paypal_client_id",
     "clientSecret": "your_paypal_client_secret"
   },
-  "supportedCurrencies": ["USD", "EUR", "GBP", "BTC", "ETH"]
+  "supportedCurrencies": ["USD", "EUR", "GBP", "BTC", "ETH"],
+  "pragmaticPlayApiUrl": "https://api.pragmaticplay.com",
+  "pragmaticPlayApiKey": "your_pragmatic_play_api_key"
 }
