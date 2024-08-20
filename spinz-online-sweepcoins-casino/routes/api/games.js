@@ -35,6 +35,25 @@ router.get('/slots', auth, async (req, res) => {
   }
 });
 
+// @route   GET api/games/slots/:type
+// @desc    Get slot games by type (classic, video, progressive)
+// @access  Private
+router.get('/slots/:type', auth, async (req, res) => {
+  try {
+    const slotGames = await slotGameIntegration.getGameList();
+    const { type } = req.params;
+    
+    if (!['classicSlots', 'videoSlots', 'progressiveJackpots'].includes(type)) {
+      return res.status(400).json({ msg: 'Invalid slot game type' });
+    }
+    
+    res.json(slotGames[type]);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   POST api/games/slots/launch
 // @desc    Launch a slot game
 // @access  Private
