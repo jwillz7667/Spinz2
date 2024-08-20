@@ -5,6 +5,8 @@ const { auth } = require('../../middleware/auth');
 const User = require('../../models/User');
 const Wallet = require('../../models/Wallet');
 const Transaction = require('../../models/Transaction');
+const logger = require('../../utils/logger');
+const { convertCurrency } = require('../../utils/currencyConverter');
 
 // @route   GET api/wallets
 // @desc    Get user's wallets
@@ -12,10 +14,13 @@ const Transaction = require('../../models/Transaction');
 router.get('/', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).populate('wallets');
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
     res.json(user.wallets);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    logger.error(`Error fetching wallets: ${err.message}`);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
   }
 });
 
@@ -26,6 +31,7 @@ router.post('/', [
   auth,
   [
     check('currency', 'Currency is required').not().isEmpty(),
+    check('currency', 'Invalid currency').isIn(['USD', 'EUR', 'GBP', 'BTC', 'ETH']),
   ]
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -36,6 +42,15 @@ router.post('/', [
   try {
     const { currency } = req.body;
     const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    const existingWallet = user.wallets.find(wallet => wallet.currency === currency);
+    if (existingWallet) {
+      return res.status(400).json({ msg: 'Wallet with this currency already exists' });
+    }
 
     const newWallet = new Wallet({
       user: req.user.id,
@@ -54,8 +69,8 @@ router.post('/', [
 
     res.json(newWallet);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    logger.error(`Error creating wallet: ${err.message}`);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
   }
 });
 
@@ -66,7 +81,9 @@ router.post('/deposit', [
   auth,
   [
     check('amount', 'Amount is required').isNumeric(),
+    check('amount', 'Amount must be positive').isFloat({ min: 0.01 }),
     check('currency', 'Currency is required').not().isEmpty(),
+    check('currency', 'Invalid currency').isIn(['USD', 'EUR', 'GBP', 'BTC', 'ETH']),
   ]
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -78,6 +95,10 @@ router.post('/deposit', [
     const { amount, currency } = req.body;
     const user = await User.findById(req.user.id).populate('wallets');
     
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
     let wallet = user.wallets.find(w => w.currency === currency);
     if (!wallet) {
       wallet = new Wallet({
@@ -94,13 +115,14 @@ router.post('/deposit', [
       await user.save();
     }
 
-    wallet.balance += parseFloat(amount);
+    const depositAmount = parseFloat(amount);
+    wallet.balance += depositAmount;
     await wallet.save();
 
     const transaction = new Transaction({
       user: req.user.id,
       type: 'deposit',
-      amount: parseFloat(amount),
+      amount: depositAmount,
       currency,
       toWallet: wallet._id,
       status: 'completed'
@@ -109,8 +131,8 @@ router.post('/deposit', [
 
     res.json({ wallet, transaction });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    logger.error(`Error depositing funds: ${err.message}`);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
   }
 });
 
@@ -121,7 +143,11 @@ router.post('/withdraw', [
   auth,
   [
     check('amount', 'Amount is required').isNumeric(),
+    check('amount', 'Amount must be positive').isFloat({ min: 0.01 }),
     check('currency', 'Currency is required').not().isEmpty(),
+    check('currency', 'Invalid currency').isIn(['USD', 'EUR', 'GBP', 'BTC', 'ETH']),
+    check('paymentMethod', 'Payment method is required').not().isEmpty(),
+    check('paymentDetails', 'Payment details are required').not().isEmpty(),
   ]
 ], async (req, res) => {
   const errors = validationResult(req);
@@ -130,35 +156,124 @@ router.post('/withdraw', [
   }
 
   try {
-    const { amount, currency } = req.body;
+    const { amount, currency, paymentMethod, paymentDetails } = req.body;
     const user = await User.findById(req.user.id).populate('wallets');
     
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
     const wallet = user.wallets.find(w => w.currency === currency);
     if (!wallet) {
       return res.status(400).json({ msg: 'Wallet not found for this currency' });
     }
 
-    if (wallet.balance < parseFloat(amount)) {
+    const withdrawalAmount = parseFloat(amount);
+    if (wallet.balance < withdrawalAmount) {
       return res.status(400).json({ msg: 'Insufficient funds' });
     }
 
-    wallet.balance -= parseFloat(amount);
-    await wallet.save();
-
+    // Create a pending transaction
     const transaction = new Transaction({
       user: req.user.id,
       type: 'withdrawal',
-      amount: parseFloat(amount),
+      amount: withdrawalAmount,
       currency,
       fromWallet: wallet._id,
-      status: 'pending'
+      status: 'pending',
+      paymentMethod,
+      paymentDetails: encryptPaymentData(paymentDetails)
     });
     await transaction.save();
 
-    res.json({ wallet, transaction });
+    // Deduct the amount from the wallet
+    wallet.balance -= withdrawalAmount;
+    await wallet.save();
+
+    // Send notification to admin for approval
+    // This is a placeholder. You should implement a proper notification system.
+    logger.info(`New withdrawal request: ${transaction._id}`);
+
+    res.json({ 
+      msg: 'Withdrawal request submitted for approval',
+      transaction: {
+        id: transaction._id,
+        amount: transaction.amount,
+        currency: transaction.currency,
+        status: transaction.status
+      }
+    });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    logger.error(`Error processing withdrawal: ${err.message}`);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
+  }
+});
+
+// @route   POST api/wallets/convert
+// @desc    Convert currency between wallets
+// @access  Private
+router.post('/convert', [
+  auth,
+  [
+    check('fromCurrency', 'From currency is required').not().isEmpty(),
+    check('toCurrency', 'To currency is required').not().isEmpty(),
+    check('amount', 'Amount is required').isNumeric(),
+    check('amount', 'Amount must be positive').isFloat({ min: 0.01 }),
+  ]
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { fromCurrency, toCurrency, amount } = req.body;
+    const user = await User.findById(req.user.id).populate('wallets');
+
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    const fromWallet = user.wallets.find(w => w.currency === fromCurrency);
+    const toWallet = user.wallets.find(w => w.currency === toCurrency);
+
+    if (!fromWallet || !toWallet) {
+      return res.status(400).json({ msg: 'One or both wallets not found' });
+    }
+
+    if (fromWallet.balance < parseFloat(amount)) {
+      return res.status(400).json({ msg: 'Insufficient funds' });
+    }
+
+    const convertedAmount = await convertCurrency(parseFloat(amount), fromCurrency, toCurrency);
+
+    fromWallet.balance -= parseFloat(amount);
+    toWallet.balance += convertedAmount;
+
+    await fromWallet.save();
+    await toWallet.save();
+
+    const transaction = new Transaction({
+      user: req.user.id,
+      type: 'conversion',
+      amount: parseFloat(amount),
+      currency: fromCurrency,
+      fromWallet: fromWallet._id,
+      toWallet: toWallet._id,
+      status: 'completed',
+      details: {
+        fromAmount: parseFloat(amount),
+        fromCurrency,
+        toAmount: convertedAmount,
+        toCurrency
+      }
+    });
+    await transaction.save();
+
+    res.json({ fromWallet, toWallet, transaction });
+  } catch (err) {
+    logger.error(`Error converting currency: ${err.message}`);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
   }
 });
 
