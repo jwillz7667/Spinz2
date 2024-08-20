@@ -48,13 +48,6 @@ const setupWebSocket = (io) => {
       console.log('WebSocket disconnected');
     });
   });
-        return next(new Error('User not found'));
-      }
-      socket.user = user;
-      next();
-    } catch (err) {
-      next(new Error('Invalid token'));
-    }
   });
 
   io.on('connection', (socket) => {
