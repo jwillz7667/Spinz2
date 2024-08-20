@@ -60,6 +60,32 @@ describe('Authentication Module', () => {
       expect(res.statusCode).toBe(400);
       expect(res.body.errors[0].msg).toBe('User already exists');
     });
+
+    it('should not register a user with invalid email', async () => {
+      const res = await request(app)
+        .post('/api/users/register')
+        .send({
+          name: 'Test User',
+          email: 'invalid-email',
+          password: 'password123'
+        });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.errors[0].msg).toBe('Please include a valid email');
+    });
+
+    it('should not register a user with a short password', async () => {
+      const res = await request(app)
+        .post('/api/users/register')
+        .send({
+          name: 'Test User',
+          email: 'test@example.com',
+          password: 'short'
+        });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.errors[0].msg).toBe('Please enter a password with 6 or more characters');
+    });
   });
 
   describe('User Login', () => {
@@ -107,6 +133,40 @@ describe('Authentication Module', () => {
 
       expect(res.statusCode).toBe(400);
       expect(res.body.errors[0].msg).toBe('Please verify your email before logging in');
+    });
+
+    it('should not login with incorrect password', async () => {
+      const userRole = await Role.findOne({ name: 'user' });
+      const user = new User({
+        name: 'Test User',
+        email: 'test@example.com',
+        password: 'password123',
+        roles: [userRole._id],
+        isVerified: true
+      });
+      await user.save();
+
+      const res = await request(app)
+        .post('/api/users/login')
+        .send({
+          email: 'test@example.com',
+          password: 'wrongpassword'
+        });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.errors[0].msg).toBe('Invalid Credentials');
+    });
+
+    it('should not login with non-existent email', async () => {
+      const res = await request(app)
+        .post('/api/users/login')
+        .send({
+          email: 'nonexistent@example.com',
+          password: 'password123'
+        });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.errors[0].msg).toBe('Invalid Credentials');
     });
   });
 
@@ -179,5 +239,50 @@ describe('Authentication Module', () => {
 
       expect(res.statusCode).toBe(200);
     });
+
+    it('should not allow access with an invalid token', async () => {
+      const res = await request(app)
+        .get('/api/games')
+        .set('x-auth-token', 'invalidtoken');
+
+      expect(res.statusCode).toBe(401);
+    });
+
+    it('should not allow access without a token', async () => {
+      const res = await request(app)
+        .get('/api/games');
+
+      expect(res.statusCode).toBe(401);
+    });
+  });
+
+  describe('Password Reset', () => {
+    it('should send a password reset email', async () => {
+      const user = new User({
+        name: 'Test User',
+        email: 'test@example.com',
+        password: 'password123',
+        isVerified: true
+      });
+      await user.save();
+
+      const res = await request(app)
+        .post('/api/users/forgot-password')
+        .send({ email: 'test@example.com' });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.msg).toBe('Password reset email sent');
+    });
+
+    it('should not send a password reset email for non-existent user', async () => {
+      const res = await request(app)
+        .post('/api/users/forgot-password')
+        .send({ email: 'nonexistent@example.com' });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.errors[0].msg).toBe('User not found');
+    });
+
+    // Add more tests for password reset functionality
   });
 });
