@@ -3,6 +3,23 @@ import { setAlert } from './alert';
 import setAuthToken from '../utils/setAuthToken';
 
 // Load User
+import axios from 'axios';
+import { setAlert } from './alert';
+import {
+  REGISTER_SUCCESS,
+  REGISTER_FAIL,
+  USER_LOADED,
+  AUTH_ERROR,
+  LOGIN_SUCCESS,
+  LOGIN_FAIL,
+  LOGOUT,
+  CLEAR_PROFILE,
+  MFA_REQUIRED,
+  DEVICE_VERIFICATION_REQUIRED
+} from './types';
+import setAuthToken from '../utils/setAuthToken';
+
+// Load User
 export const loadUser = () => async dispatch => {
   if (localStorage.token) {
     setAuthToken(localStorage.token);
@@ -12,7 +29,7 @@ export const loadUser = () => async dispatch => {
     const res = await axios.get('/api/auth');
 
     dispatch({
-      type: 'USER_LOADED',
+      type: USER_LOADED,
       payload: res.data
     });
   } catch (err) {
@@ -89,4 +106,109 @@ export const login = (email, password) => async dispatch => {
 // Logout
 export const logout = () => dispatch => {
   dispatch({ type: 'LOGOUT' });
+};
+// Login User
+export const login = (email, password, deviceId) => async dispatch => {
+  const config = {
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  };
+
+  const body = JSON.stringify({ email, password, deviceId });
+
+  try {
+    const res = await axios.post('/api/users/login', body, config);
+
+    dispatch({
+      type: LOGIN_SUCCESS,
+      payload: res.data
+    });
+
+    dispatch(loadUser());
+  } catch (err) {
+    const errors = err.response.data.errors;
+
+    if (errors) {
+      errors.forEach(error => dispatch(setAlert(error.msg, 'danger')));
+    }
+
+    if (err.response.status === 403) {
+      if (err.response.data.msg === 'New device detected. Please verify your device.') {
+        dispatch({
+          type: DEVICE_VERIFICATION_REQUIRED,
+          payload: { email, deviceId }
+        });
+      } else if (err.response.data.msg === 'Please verify your device.') {
+        dispatch({
+          type: DEVICE_VERIFICATION_REQUIRED,
+          payload: { email, deviceId }
+        });
+      }
+    } else {
+      dispatch({
+        type: LOGIN_FAIL
+      });
+    }
+  }
+};
+
+// Verify MFA
+export const verifyMFA = (email, token) => async dispatch => {
+  const config = {
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  };
+
+  const body = JSON.stringify({ email, token });
+
+  try {
+    const res = await axios.post('/api/users/verify-mfa-login', body, config);
+
+    dispatch({
+      type: LOGIN_SUCCESS,
+      payload: res.data
+    });
+
+    dispatch(loadUser());
+  } catch (err) {
+    const errors = err.response.data.errors;
+
+    if (errors) {
+      errors.forEach(error => dispatch(setAlert(error.msg, 'danger')));
+    }
+
+    dispatch({
+      type: LOGIN_FAIL
+    });
+  }
+};
+
+// Verify Device
+export const verifyDevice = (email, deviceId, verificationCode) => async dispatch => {
+  const config = {
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  };
+
+  const body = JSON.stringify({ email, deviceId, verificationCode });
+
+  try {
+    await axios.post('/api/users/verify-device', body, config);
+
+    dispatch(setAlert('Device verified successfully', 'success'));
+    dispatch(login(email, '', deviceId));
+  } catch (err) {
+    const errors = err.response.data.errors;
+
+    if (errors) {
+      errors.forEach(error => dispatch(setAlert(error.msg, 'danger')));
+    }
+
+    dispatch({
+      type: LOGIN_FAIL
+    });
+  }
 };

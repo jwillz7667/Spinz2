@@ -8,9 +8,19 @@ const { check, validationResult } = require('express-validator');
 const { sendVerificationEmail, sendPasswordResetEmail } = require('../../services/emailService');
 const { auth, requireMFA } = require('../../middleware/auth');
 const { generateMFASecret, verifyMFAToken } = require('../../utils/mfa');
+const rateLimit = require('express-rate-limit');
 
 const User = require('../../models/User');
 const Role = require('../../models/Role');
+
+// Apply stricter rate limiting to authentication routes
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5 // limit each IP to 5 requests per windowMs
+});
+
+// Apply auth limiter to sensitive routes
+router.use(['/login', '/register', '/verify-mfa-login', '/verify-device'], authLimiter);
 
 // @route   POST api/users/register
 // @desc    Register a new user
