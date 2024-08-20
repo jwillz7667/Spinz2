@@ -25,10 +25,10 @@ const UserSchema = new mongoose.Schema({
   verificationToken: String,
   resetPasswordToken: String,
   resetPasswordExpires: Date,
-  sweepcoinsBalance: {
-    type: Number,
-    default: 0
-  },
+  wallets: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Wallet'
+  }],
   totalWinnings: {
     type: Number,
     default: 0
@@ -44,10 +44,19 @@ const UserSchema = new mongoose.Schema({
       default: Date.now
     }
   }],
-  date: {
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
     type: Date,
     default: Date.now
   }
+});
+
+UserSchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
+  next();
 });
 
 module.exports = mongoose.model('User', UserSchema);

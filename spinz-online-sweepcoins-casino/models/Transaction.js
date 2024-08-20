@@ -8,7 +8,7 @@ const TransactionSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['deposit', 'withdrawal', 'game_win', 'game_loss'],
+    enum: ['deposit', 'withdrawal', 'game_win', 'game_loss', 'transfer'],
     required: true
   },
   amount: {
@@ -25,16 +25,38 @@ const TransactionSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'completed', 'failed'],
+    enum: ['pending', 'completed', 'failed', 'cancelled'],
     default: 'pending'
   },
+  fromWallet: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Wallet'
+  },
+  toWallet: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Wallet'
+  },
+  paymentGateway: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'PaymentGateway'
+  },
+  externalTransactionId: String,
   details: {
     type: mongoose.Schema.Types.Mixed
   },
   createdAt: {
     type: Date,
     default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
   }
+});
+
+TransactionSchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
+  next();
 });
 
 module.exports = mongoose.model('Transaction', TransactionSchema);
