@@ -9,6 +9,7 @@ const { sendVerificationEmail, sendPasswordResetEmail } = require('../../service
 const { auth, requireMFA } = require('../../middleware/auth');
 const { generateMFASecret, verifyMFAToken } = require('../../utils/mfa');
 const rateLimit = require('express-rate-limit');
+const { verifyCaptcha } = require('../../utils/captcha');
 
 const User = require('../../models/User');
 const Role = require('../../models/Role');
@@ -30,7 +31,8 @@ router.post(
   [
     check('name', 'Name is required').not().isEmpty(),
     check('email', 'Please include a valid email').isEmail(),
-    check('password', 'Please enter a password with 6 or more characters').isLength({ min: 6 })
+    check('password', 'Please enter a password with 6 or more characters').isLength({ min: 6 }),
+    check('captchaToken', 'CAPTCHA token is required').not().isEmpty()
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -38,9 +40,15 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, email, password } = req.body;
+    const { name, email, password, captchaToken } = req.body;
 
     try {
+      // Verify CAPTCHA
+      const captchaVerified = await verifyCaptcha(captchaToken);
+      if (!captchaVerified) {
+        return res.status(400).json({ errors: [{ msg: 'CAPTCHA verification failed' }] });
+      }
+
       let user = await User.findOne({ email });
 
       if (user) {
